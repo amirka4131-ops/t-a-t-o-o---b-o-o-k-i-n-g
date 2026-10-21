@@ -1,0 +1,113 @@
+
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TATOO | رزرو نوبت</title>
+<style>
+body{margin:0;background:#111;color:#f5f5f5;font-family:Arial,sans-serif;padding:20px}
+main{max-width:480px;margin:20px auto;background:#202020;padding:22px;border-radius:18px}
+h1{text-align:center;color:#d6b568}
+p{text-align:center;color:#ccc}
+label{display:block;margin-top:15px}
+input,select,textarea,button{box-sizing:border-box;width:100%;padding:13px;margin-top:7px;border-radius:9px;border:1px solid #555;font-size:16px}
+input,select,textarea{background:#111;color:white}
+button{background:#d6b568;color:#111;font-weight:bold;border:0;margin-top:20px}
+#result{overflow-wrap:anywhere;line-height:2;margin-top:18px}
+</style>
+</head>
+<body>
+<main>
+<h1>TATOO</h1>
+<p>سامانه رزرو نوبت آرایشگاه</p>
+<form id="booking">
+<label>نام و نام خانوادگی</label>
+<input name="customer_name" required maxlength="100">
+<label>شماره تماس</label>
+<input name="customer_phone" type="tel" required maxlength="30">
+<label>خدمات</label>
+<select name="service" required>
+<option value="کوتاهی ساده - 200">کوتاهی ساده — 200</option>
+<option value="فید - 250">فید — 250</option>
+<option value="ماساژ 20 دقیقه - 500">ماساژ ۲۰ دقیقه — 500</option>
+<option value="ماساژ 40 دقیقه - 800">ماساژ ۴۰ دقیقه — 800</option>
+</select>
+<label>تاریخ نوبت</label>
+<input name="appointment_date" type="date" required>
+<label>ساعت پیشنهادی</label>
+<select name="appointment_time" required>
+<option value="10:00">10:00</option>
+<option value="11:00">11:00</option>
+<option value="12:00">12:00</option>
+<option value="13:00">13:00</option>
+<option value="14:00">14:00</option>
+<option value="15:00">15:00</option>
+<option value="16:00">16:00</option>
+<option value="17:00">17:00</option>
+<option value="18:00">18:00</option>
+<option value="19:00">19:00</option>
+<option value="20:00">20:00</option>
+</select>
+<label>توضیحات (اختیاری)</label>
+<textarea name="note" rows="3" maxlength="500"></textarea>
+<button type="submit" id="send">ثبت درخواست نوبت</button>
+</form>
+<div id="result" role="status"></div>
+</main>
+<script>
+const PROJECT = "https://psxypwlqbxpmgngophca.supabase.co";
+const PUBLIC_KEY = "sb_publishable_AwR8LYDCYBerpkNb0rCFQQ_6uxhMHg0";
+
+document.querySelector('[name="appointment_date"]').min =
+  new Date().toLocaleDateString('en-CA');
+
+document.getElementById('booking').addEventListener('submit', async e => {
+  e.preventDefault();
+  const form = e.currentTarget;
+  const button = document.getElementById('send');
+  const result = document.getElementById('result');
+  const data = Object.fromEntries(new FormData(form).entries());
+  const tracking = 'TAT-' + Math.random().toString(36).slice(2,8).toUpperCase();
+
+  button.disabled = true;
+  button.textContent = 'در حال ثبت...';
+  result.textContent = '';
+
+  try {
+    const response = await fetch(PROJECT + '/rest/v1/appointments', {
+      method: 'POST',
+      headers: {
+        'apikey': PUBLIC_KEY,
+        'Authorization': 'Bearer ' + PUBLIC_KEY,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify({
+        ...data,
+        tracking_code: tracking,
+        status: 'pending'
+      })
+    });
+
+    if (!response.ok) {
+      const detail = await response.text();
+      throw new Error(detail || 'خطا در ثبت درخواست');
+    }
+
+    result.textContent =
+      'درخواست ثبت شد! کد پیگیری شما: ' + tracking +
+      ' — این کد را نگه دارید. نوبت هنوز تأیید نشده است.';
+    form.reset();
+  } catch (err) {
+    result.textContent =
+      'ثبت انجام نشد. اتصال یا مجوز دیتابیس باید بررسی شود. لطفاً دوباره تلاش کنید.';
+    console.error(err);
+  } finally {
+    button.disabled = false;
+    button.textContent = 'ثبت درخواست نوبت';
+  }
+});
+</script>
+</body>
+</html>

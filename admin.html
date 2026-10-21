@@ -1,0 +1,147 @@
+
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>مدیریت TATOO</title>
+<style>
+body{margin:0;padding:16px;background:#111;color:#eee;font-family:Arial,sans-serif}
+main{max-width:800px;margin:20px auto}
+h1{color:#d6b568;text-align:center}
+.panel,.item{background:#222;padding:16px;border-radius:12px;margin:12px 0}
+input,button{box-sizing:border-box;width:100%;padding:12px;margin:7px 0;border-radius:8px;font-size:16px}
+input{background:#111;color:white;border:1px solid #555}
+button{background:#d6b568;border:0;font-weight:bold;cursor:pointer}
+button:disabled{opacity:.5}
+.reject{background:#b94b4b;color:white}
+.approve{background:#397b53;color:white}
+.small{color:#bbb;line-height:1.8;overflow-wrap:anywhere}
+#message{white-space:pre-wrap;line-height:1.8}
+.actions{display:flex;gap:8px}
+.actions button{flex:1}
+</style>
+</head>
+<body>
+<main>
+<h1>TATOO | پنل مدیریت</h1>
+<section class="panel" id="login">
+<h3>ورود مدیر</h3>
+<input id="email" type="email" value="amirka4131@gmail.com" placeholder="ایمیل" autocomplete="username">
+<input id="password" type="password" placeholder="رمز حساب Supabase" autocomplete="current-password">
+<button id="loginBtn">ورود</button>
+<p class="small">با همان ایمیل و رمزی وارد شو که در Supabase Auth ساختی.</p>
+</section>
+<section class="panel" id="dashboard" hidden>
+<button id="refresh">به‌روزرسانی نوبت‌ها</button>
+<button id="logout">خروج از حساب</button>
+<div id="message" role="status"></div>
+<div id="appointments"></div>
+</section>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const URL = "https://psxypwlqbxpmgngophca.supabase.co";
+const KEY = "sb_publishable_AwR8LYDCYBerpkNb0rCFQQ_6uxhMHg0";
+const db = window.supabase.createClient(URL, KEY);
+const $ = id => document.getElementById(id);
+const message = text => $("message").textContent = text;
+
+$("loginBtn").onclick = async () => {
+  $("loginBtn").disabled = true;
+  message("در حال ورود...");
+  try {
+    const {data,error} = await db.auth.signInWithPassword({
+      email:$("email").value.trim(),
+      password:$("password").value
+    });
+    if(error) throw error;
+    $("login").hidden = true;
+    $("dashboard").hidden = false;
+    await loadAppointments();
+  } catch(e) {
+    message("ورود ناموفق بود. ایمیل، رمز و تأیید حساب را بررسی کن.\n" + e.message);
+  } finally {
+    $("loginBtn").disabled = false;
+  }
+};
+
+async function loadAppointments() {
+  message("در حال دریافت نوبت‌ها...");
+  $("appointments").replaceChildren();
+  try {
+    const {data,error} = await db.from("appointments")
+      .select("id,tracking_code,customer_name,customer_phone,service,appointment_date,appointment_time,note,status,created_at")
+      .order("created_at",{ascending:false});
+    if(error) throw error;
+    if(!data.length) {
+      message("فعلاً نوبتی برای نمایش وجود ندارد.");
+      return;
+    }
+    message("تعداد درخواست‌ها: " + data.length);
+    data.forEach(a => {
+      const card = document.createElement("article");
+      card.className = "item";
+      const details = document.createElement("div");
+      details.className = "small";
+      details.textContent =
+        "کد پیگیری: " + a.tracking_code +
+        "\nنام: " + a.customer_name +
+        "\nتلفن: " + a.customer_phone +
+        "\nخدمت: " + a.service +
+        "\nتاریخ: " + a.appointment_date +
+        "\nساعت: " + a.appointment_time +
+        "\nتوضیحات: " + (a.note || "ندارد") +
+        "\nوضعیت: " + ({pending:"در انتظار",approved:"تأیید شده",rejected:"رد شده"}[a.status] || a.status);
+      card.append(details);
+      if(a.status === "pending") {
+        const actions = document.createElement("div");
+        actions.className = "actions";
+        [["approved","تأیید","approve"],["rejected","رد","reject"]].forEach(([status,label,cls]) => {
+          const b = document.createElement("button");
+          b.textContent = label;
+          b.className = cls;
+          b.onclick = () => updateStatus(a.id,status,b);
+          actions.append(b);
+        });
+        card.append(actions);
+      }
+      $("appointments").append(card);
+    });
+  } catch(e) {
+    message("دریافت نوبت‌ها ناموفق بود. احتمالاً مجوزهای دیتابیس نیاز به اصلاح دارد.\n" + e.message);
+  }
+}
+
+async function updateStatus(id,status,button) {
+  button.disabled = true;
+  try {
+    const {error} = await db.from("appointments")
+      .update({status})
+      .eq("id",id);
+    if(error) throw error;
+    await loadAppointments();
+  } catch(e) {
+    message("تغییر وضعیت انجام نشد؛ مجوز دیتابیس را بررسی می‌کنیم.\n" + e.message);
+    button.disabled = false;
+  }
+}
+
+$("refresh").onclick = loadAppointments;
+$("logout").onclick = async () => {
+  await db.auth.signOut();
+  $("dashboard").hidden = true;
+  $("login").hidden = false;
+  $("password").value = "";
+  message("");
+};
+db.auth.getSession().then(async ({data}) => {
+  if(data.session) {
+    $("login").hidden = true;
+    $("dashboard").hidden = false;
+    await loadAppointments();
+  }
+});
+</script>
+</body>
+</html>

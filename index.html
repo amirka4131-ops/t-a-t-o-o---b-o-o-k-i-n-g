@@ -1,26 +1,108 @@
 
-<section id="tracking-section" dir="rtl" style="max-width:500px;margin:30px auto;padding:20px;background:#222;color:white;border-radius:14px;font-family:Arial,sans-serif">
-  <h2>پیگیری نوبت</h2>
-  <p>کد پیگیری که پس از ثبت نوبت دریافت کردی وارد کن.</p>
-  <form id="tracking-form">
-    <input id="tracking-code" required autocomplete="off"
-      placeholder="کد پیگیری"
-      style="box-sizing:border-box;width:100%;padding:12px;margin:8px 0;border-radius:8px">
-    <button id="tracking-button" type="submit"
-      style="width:100%;padding:12px;border:0;border-radius:8px;cursor:pointer">
-      بررسی وضعیت
-    </button>
-  </form>
-  <p id="tracking-message" role="status" aria-live="polite"></p>
-  <div id="tracking-result" hidden>
-    <p>کد پیگیری: <strong id="tr-code"></strong></p>
-    <p>خدمت: <strong id="tr-service"></strong></p>
-    <p>تاریخ: <strong id="tr-date"></strong></p>
-    <p>ساعت: <strong id="tr-time"></strong></p>
-    <p>وضعیت: <strong id="tr-status"></strong></p>
-  </div>
-</section>
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>رزرو و پیگیری نوبت</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; padding: 20px;
+      background: #111; color: #fff;
+      font-family: Tahoma, Arial, sans-serif;
+    }
+    .container { max-width: 650px; margin: auto; }
+    h1 { text-align: center; color: #e8c477; }
+    .card {
+      background: #222; padding: 20px; margin: 20px 0;
+      border-radius: 14px; border: 1px solid #444;
+    }
+    h2 { color: #e8c477; margin-top: 0; }
+    input, select, textarea, button {
+      width: 100%; padding: 13px; margin: 7px 0;
+      border-radius: 8px; font: inherit;
+    }
+    input, select, textarea {
+      background: #fff; color: #111; border: 1px solid #bbb;
+    }
+    button {
+      background: #e8c477; color: #111; border: 0;
+      font-weight: bold; cursor: pointer;
+    }
+    button:disabled { opacity: .6; cursor: wait; }
+    .message { line-height: 1.9; overflow-wrap: anywhere; }
+    .price { color: #ddd; font-size: 14px; }
+    .result {
+      background: #333; border-radius: 8px;
+      padding: 12px; margin-top: 12px; line-height: 2;
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h1>رزرو نوبت</h1>
 
+  <section class="card">
+    <h2>ثبت نوبت جدید</h2>
+    <p class="price">
+      اصلاح ساده: ۲۰۰ هزار تومان<br>
+      فید: ۲۵۰ هزار تومان<br>
+      ماساژ ۲۰ دقیقه: ۵۰۰ هزار تومان<br>
+      ماساژ ۴۰ دقیقه: ۸۰۰ هزار تومان
+    </p>
+
+    <form id="booking-form">
+      <input id="customer-name" placeholder="نام و نام خانوادگی"
+        maxlength="100" required>
+      <input id="customer-phone" type="tel"
+        placeholder="شماره تماس" maxlength="30" required>
+
+      <select id="service" required>
+        <option value="">انتخاب خدمت</option>
+        <option value="اصلاح ساده">اصلاح ساده - ۲۰۰ هزار تومان</option>
+        <option value="فید">فید - ۲۵۰ هزار تومان</option>
+        <option value="ماساژ ۲۰ دقیقه">ماساژ ۲۰ دقیقه - ۵۰۰ هزار تومان</option>
+        <option value="ماساژ ۴۰ دقیقه">ماساژ ۴۰ دقیقه - ۸۰۰ هزار تومان</option>
+      </select>
+
+      <label for="appointment-date">تاریخ نوبت</label>
+      <input id="appointment-date" type="date" required>
+
+      <label for="appointment-time">ساعت نوبت</label>
+      <input id="appointment-time" type="time" required>
+
+      <textarea id="note" placeholder="توضیحات (اختیاری)"
+        maxlength="500" rows="3"></textarea>
+
+      <button id="booking-button" type="submit">ثبت درخواست نوبت</button>
+    </form>
+
+    <div id="booking-message" class="message" role="status"></div>
+  </section>
+
+  <section class="card">
+    <h2>پیگیری نوبت</h2>
+    <p>کد پیگیری دریافتی هنگام ثبت نوبت را وارد کن.</p>
+
+    <form id="tracking-form">
+      <input id="tracking-code" placeholder="کد پیگیری"
+        maxlength="100" required>
+      <button id="tracking-button" type="submit">بررسی وضعیت</button>
+    </form>
+
+    <div id="tracking-message" class="message" role="status"></div>
+    <div id="tracking-result" class="result" hidden>
+      <div>کد پیگیری: <strong id="tr-code"></strong></div>
+      <div>خدمت: <strong id="tr-service"></strong></div>
+      <div>تاریخ: <strong id="tr-date"></strong></div>
+      <div>ساعت: <strong id="tr-time"></strong></div>
+      <div>وضعیت: <strong id="tr-status"></strong></div>
+    </div>
+  </section>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 (() => {
   const client = window.supabase.createClient(
@@ -28,46 +110,100 @@
     'sb_publishable_AwR8LYDCYBerpkNb0rCFQQ_6uxhMHg0'
   );
 
-  const form = document.getElementById('tracking-form');
-  const input = document.getElementById('tracking-code');
-  const button = document.getElementById('tracking-button');
-  const message = document.getElementById('tracking-message');
-  const result = document.getElementById('tracking-result');
-
-  const show = (id, value) => {
-    document.getElementById(id).textContent = value ?? '—';
+  const $ = id => document.getElementById(id);
+  const statusNames = {
+    pending: 'در انتظار تأیید',
+    approved: 'تأیید شده',
+    rejected: 'رد شده'
   };
 
-  form.addEventListener('submit', async event => {
-    event.preventDefault();
-    result.hidden = true;
+  // ثبت نوبت
+  $('booking-form').addEventListener('submit', async e => {
+    e.preventDefault();
+
+    const button = $('booking-button');
+    const message = $('booking-message');
     button.disabled = true;
-    message.textContent = 'در حال بررسی کد پیگیری...';
+    message.textContent = 'در حال ثبت نوبت...';
 
     try {
-      const { data, error } = await client.rpc('track_appointment', {
-        p_tracking_code: input.value.trim()
-      });
+      // کد تصادفی برای پیگیری
+      const bytes = new Uint8Array(12);
+      crypto.getRandomValues(bytes);
+      const trackingCode = Array.from(bytes)
+        .map(b => b.toString(16).padStart(2, '0')).join('');
+
+      const appointment = {
+        tracking_code: trackingCode,
+        customer_name: $('customer-name').value.trim(),
+        customer_phone: $('customer-phone').value.trim(),
+        service: $('service').value,
+        appointment_date: $('appointment-date').value,
+        appointment_time: $('appointment-time').value,
+        note: $('note').value.trim(),
+        status: 'pending'
+      };
+
+      if (!appointment.customer_name || !appointment.customer_phone ||
+          !appointment.service || !appointment.appointment_date ||
+          !appointment.appointment_time) {
+        throw new Error('لطفاً همه موارد ضروری را کامل کن.');
+      }
+
+      if (appointment.appointment_date <
+          new Date().toLocaleDateString('en-CA')) {
+        throw new Error('تاریخ نوبت نمی‌تواند در گذشته باشد.');
+      }
+
+      const { error } = await client
+        .from('appointments')
+        .insert(appointment);
 
       if (error) throw error;
 
+      message.textContent =
+        'درخواست نوبت ثبت شد. کد پیگیری را حتماً ذخیره کن: ' +
+        trackingCode + ' — وضعیت فعلی: در انتظار تأیید';
+
+      $('tracking-code').value = trackingCode;
+      $('booking-form').reset();
+    } catch (error) {
+      message.textContent = 'ثبت انجام نشد: ' + error.message;
+    } finally {
+      button.disabled = false;
+    }
+  });
+
+  // پیگیری نوبت با تابع SQL در Supabase
+  $('tracking-form').addEventListener('submit', async e => {
+    e.preventDefault();
+
+    const button = $('tracking-button');
+    const message = $('tracking-message');
+    const result = $('tracking-result');
+
+    button.disabled = true;
+    result.hidden = true;
+    message.textContent = 'در حال بررسی...';
+
+    try {
+      const { data, error } = await client.rpc('track_appointment', {
+        p_tracking_code: $('tracking-code').value.trim()
+      });
+
+      if (error) throw error;
       if (!data || data.length === 0) {
-        message.textContent = 'کد پیگیری پیدا نشد. کد را بررسی کن.';
+        message.textContent = 'کد پیدا نشد؛ لطفاً کد را بررسی کن.';
         return;
       }
 
       const a = data[0];
-      show('tr-code', a.tracking_code);
-      show('tr-service', a.service);
-      show('tr-date', a.appointment_date);
-      show('tr-time', a.appointment_time);
+      $('tr-code').textContent = a.tracking_code || '—';
+      $('tr-service').textContent = a.service || '—';
+      $('tr-date').textContent = a.appointment_date || '—';
+      $('tr-time').textContent = a.appointment_time || '—';
+      $('tr-status').textContent = statusNames[a.status] || a.status || '—';
 
-      const statuses = {
-        pending: 'در انتظار تأیید',
-        approved: 'تأیید شده',
-        rejected: 'رد شده'
-      };
-      show('tr-status', statuses[a.status] || a.status);
       result.hidden = false;
       message.textContent = '';
     } catch (error) {
@@ -76,6 +212,11 @@
       button.disabled = false;
     }
   });
+
+  // تاریخ‌های گذشته را در انتخابگر غیرفعال کن
+  $('appointment-date').min =
+    new Date().toLocaleDateString('en-CA');
 })();
-        </script>
-        
+</script>
+</body>
+</html>
